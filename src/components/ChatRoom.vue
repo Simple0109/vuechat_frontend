@@ -26,21 +26,40 @@
 
 <script>
 import axios from 'axios';
+import { inject } from 'vue'; // 追加
 
 export default {
   props: ['roomId'],
   data() {
     return {
       roomName: '',
-      messages: [], // カンマを追加
-      senderName: '', // 追加
-      newMessageContent: '', // 追加
+      messages: [],
+      senderName: '',
+      newMessageContent: '',
     };
+  },
+  // setupフックを追加
+  setup() {
+    const cable = inject('cable');
+    return { cable };
   },
   created() {
     this.fetchMessages();
+    this.createSubscription(); // createdフック内でcreateSubscriptionメソッドを呼び出す
   },
   methods: {
+    // 追加
+    createSubscription() {
+      this.subscription = this.cable.subscriptions.create(
+        { channel: 'RoomChannel', room_id: this.roomId },
+        {
+          received: message => {
+            console.log(message);
+            this.messages.push(message);
+          },
+        }
+      );
+    },
     fetchMessages() {
       axios
         .get(`http://localhost:3000/rooms/${this.roomId}/messages`)
